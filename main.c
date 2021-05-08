@@ -1,10 +1,10 @@
-/* Copyright 2021 <> */
+// Copyright 2020 - 2021 - 311CA - Mihai Daniel Soare
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "load_balancer.h"
-#include "utils.h"
+#include "./load_balancer.h"
+#include "./utils.h"
 
 #define REQUEST_LENGTH 1024
 #define KEY_LENGTH 128
