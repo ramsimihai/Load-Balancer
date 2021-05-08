@@ -1,9 +1,9 @@
-/* Copyright 2021 <> */
+// Copyright 2020 - 2021 - 311CA - Mihai Daniel Soare
 #ifndef LOAD_BALANCER_H_
 #define LOAD_BALANCER_H_
 
-#include "server.h"
-#include "circular_doubly_linked_list.h"
+#include "./server.h"
+#include "./circular_doubly_linked_list.h"
 
 #define MAX_REPLIQUE 2
 #define FIFTH_PWR 100000
@@ -38,7 +38,8 @@ void free_load_balancer(load_balancer_t* main);
  * load across the servers. The chosen server ID will be returned 
  * using the last parameter.
  */
-void loader_store(load_balancer_t* main, char* key, char* value, int* server_id);
+void loader_store(load_balancer_t* main, char* key,
+				  char* value, int* server_id);
 
 /**
  * load_retrieve() - Gets a value associated with the key.
@@ -75,4 +76,4 @@ void loader_add_server(load_balancer_t* main, int server_id);
 void loader_remove_server(load_balancer_t* main, int server_id);
 
 
-#endif  /* LOAD_BALANCER_H_ */
+#endif  // LOAD_BALANCER_H_

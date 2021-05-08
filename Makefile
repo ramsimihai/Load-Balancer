@@ -1,9 +1,10 @@
+# Copyright 2020 - 2021 - 311CA - Mihai Daniel Soare
 CC=gcc
 CFLAGS=-std=c99 -Wall -Wextra
 LOAD=load_balancer
 SERVER=server
-HTABLE=Hashtable
-LIST=LinkedList
+HTABLE=hashtable
+LIST=linked_list
 CDLL=circular_doubly_linked_list
 
 .PHONY: build clean
@@ -30,6 +31,9 @@ $(SERVER).o: $(SERVER).c $(SERVER).h
 
 $(LOAD).o: $(LOAD).c $(LOAD).h
 	$(CC) $(CFLAGS) $^ -c
+
+pack:
+	zip -FSr 311CA_MihaiDaniel_Soare_Tema2.zip README Makefile *.c *.h
 
 clean:
 	rm -f *.o tema2 *.h.gch

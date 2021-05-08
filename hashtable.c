@@ -1,18 +1,15 @@
-
+// Copyright 2020 - 2021 - 311CA - Mihai Daniel Soare
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "utils.h"
 
-#include "Hashtable.h"
+#include "./utils.h"
+#include "./hashtable.h"
 
 typedef unsigned int uint;
 
 #define RESIZE_CONST 0.75
 
-/*
- * Functii de comparare a cheilor:
- */
 int
 compare_function_ints(void *a, void *b)
 {
@@ -37,15 +34,9 @@ compare_function_strings(void *a, void *b)
 	return strcmp(str_a, str_b);
 }
 
-/*
- * Functii de hashing:
- */
 unsigned int
 hash_function_int(void *a)
 {
-	/*
-	 * Credits: https://stackoverflow.com/a/12996028/7883884
-	 */
 	unsigned int uint_a = *((unsigned int *)a);
 
 	uint_a = ((uint_a >> 16u) ^ uint_a) * 0x45d9f3b;
@@ -57,24 +48,16 @@ hash_function_int(void *a)
 unsigned int
 hash_function_string(void *a)
 {
-	/*
-	 * Credits: http://www.cse.yorku.ca/~oz/hash.html
-	 */
 	unsigned char *puchar_a = (unsigned char*) a;
-	unsigned long hash = 5381;
+	unsigned int hash = 5381;
 	int c;
 
 	while ((c = *puchar_a++))
-		hash = ((hash << 5u) + hash) + c; /* hash * 33 + c */
+		hash = ((hash << 5u) + hash) + c;
 
 	return hash;
 }
 
-
-/*
- * Functie apelata dupa alocarea unui hashtable pentru a-l initializa.
- * Trebuie alocate si initializate si listele inlantuite.
- */
 hashtable_t *
 ht_create(unsigned int hmax, unsigned int (*hash_function)(void*),
 		int (*compare_function)(void*, void*))
@@ -87,7 +70,7 @@ ht_create(unsigned int hmax, unsigned int (*hash_function)(void*),
 
 	for (uint i = 0; i < hmax; i++)
 		ht->buckets[i] = ll_create(sizeof(info_t));
-	
+
 	ht->hmax = hmax;
 
 	ht->hash_function = hash_function;
@@ -113,27 +96,25 @@ static ll_node_t *find_key(linked_list_t *bucket, void *key,
 	}
 
 	return NULL;
-}	
+}
 
 void ht_resize(hashtable_t *ht, uint key_size, uint value_size)
 {
 	int n = 2 * ht->hmax;
 	hashtable_t *new_ht = ht_create(n, ht->hash_function, ht->compare_function);
 
-
-	for (int i = 0; i < ht->hmax; i++) {
+	for (uint i = 0; i < ht->hmax; i++) {
 		linked_list_t *bucket = ht->buckets[i];
 		ll_node_t *current = bucket->head;
 
-		for (int j = 0; j < bucket->size; j++) {
-			ht_put(new_ht, ((info_t *)current->data)->key, key_size, ((info_t *)current->data)->value, value_size);
+		for (uint j = 0; j < bucket->size; j++) {
+			ht_put(new_ht, ((info_t *)current->data)->key, key_size,
+				  ((info_t *)current->data)->value, value_size);
 			current = current->next;
 		}
-		
 	}
 
-	for (int i = 0; i < ht->hmax; i++) {
-
+	for (uint i = 0; i < ht->hmax; i++) {
 		while (ht->buckets[i]->head) {
 			ll_node_t *removed = ll_remove_nth_node(ht->buckets[i], 0);
 			free(((info_t *)removed->data)->value);
@@ -142,14 +123,14 @@ void ht_resize(hashtable_t *ht, uint key_size, uint value_size)
 			free(removed);
 		}
 
-		free(ht->buckets[i]);		
+		free(ht->buckets[i]);
 	}
 
 	free(ht->buckets);
 
 	ht->buckets = new_ht->buckets;
 	ht->hmax = n;
-	
+
 	free(new_ht);
 }
 
@@ -189,7 +170,7 @@ ht_put(hashtable_t *ht, void *key, unsigned int key_size,
 	} else {
 		memcpy(((info_t *)node->data)->value, value, value_size);
 	}
-	
+
 	ht->size++;
 }
 
@@ -237,7 +218,7 @@ ht_remove_entry(hashtable_t *ht, void *key)
 {
 	if (!ht)
 		return;
-	
+
 	uint idx = ht->hash_function(key) % ht->hmax;
 	linked_list_t *bucket = ht->buckets[idx];
 	uint pos;

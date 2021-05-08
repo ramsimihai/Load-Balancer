@@ -1,10 +1,10 @@
-/* Copyright 2021 <> */
+// Copyright 2020 - 2021 - 311CA - Mihai Daniel Soare
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "load_balancer.h"
-#include "utils.h"
+#include "./load_balancer.h"
+#include "./utils.h"
 
 unsigned int hash_function_servers(void *a) {
 	unsigned int uint_a = *((unsigned int *)a);
@@ -34,10 +34,10 @@ void print_every_server(load_balancer_t *main)
 
 	printf("id si hash - server: ");
 	for (uint i = 0; i < main->hash_ring->size; i++) {
-		printf("%d %u\n", ((server_t*)current->data)->id, ((server_t *)current->data)->hash);
+		printf("%d %u\n", ((server_t*)current->data)->id,
+			  ((server_t *)current->data)->hash);
 		current = current->next;
 	}
-
 }
 
 load_balancer_t* init_load_balancer() {
@@ -76,8 +76,7 @@ void loader_store(load_balancer_t* main, char* key, char* value, int *server_id)
 			server_store(((server_t *)current->next->data)->server_memory, key, value);
 			*server_id = get_server_id(((server_t *)current->next->data)->id);
 			break;
-		} 
-
+		}
 		current = current->next;
 	}
 }
@@ -124,10 +123,11 @@ server_t *create_server(int server_id)
 	return new_server;
 }
 
-void rebalance_hash_ring(doubly_linked_list_t *hash_ring, server_t *server_prev, server_t *server_src, server_t *server_dest)
+void rebalance_hash_ring(doubly_linked_list_t *hash_ring, server_t *server_prev,
+						 server_t *server_src, server_t *server_dest)
 {
 	if (!server_src || !server_dest || !server_prev)
-		return;	
+		return;
 
 	uint hash_first_server = ((server_t *)hash_ring->head->next->data)->hash;
 	uint hash_last_server = ((server_t *)hash_ring->head->prev->data)->hash;
@@ -151,22 +151,24 @@ void rebalance_hash_ring(doubly_linked_list_t *hash_ring, server_t *server_prev,
 					  ((info_t *)current->data)->key, KEY_LENGTH,
 					  ((info_t *)current->data)->value, VALUE_LENGTH);
 
-				ht_remove_entry(server_src->server_memory->data, ((info_t *)current->data)->key);
+				ht_remove_entry(server_src->server_memory->data,
+				    		   ((info_t *)current->data)->key);
 			} else if (server_dest->hash < hash_first_server) {
 				if (hash_obj > hash_last_server || hash_obj < server_dest->hash) {
 					ht_put(server_dest->server_memory->data,
 						((info_t *)current->data)->key, KEY_LENGTH,
 						((info_t *)current->data)->value, VALUE_LENGTH);
 
-					ht_remove_entry(server_src->server_memory->data, ((info_t *)current->data)->key);
+					ht_remove_entry(server_src->server_memory->data,
+								   ((info_t *)current->data)->key);
 				}
 			}
-
 		}
 	}
 }
 
-void add_one_server(load_balancer_t *main, doubly_linked_list_t *hash_ring, int server_id, server_memory_t *new_server_memory)
+void add_one_server(doubly_linked_list_t *hash_ring,
+					int server_id, server_memory_t *new_server_memory)
 {
 	server_t new_server;
 	new_server.id = server_id;
@@ -198,11 +200,12 @@ void add_one_server(load_balancer_t *main, doubly_linked_list_t *hash_ring, int 
 		}
 	}
 
-	 dll_node_t *current = hash_ring->head;
+	dll_node_t *current = hash_ring->head;
 
 	for (uint i = 0; i < hash_ring->size; i++) {
 		if (((server_t *)current->data)->id == server_id) {
-			rebalance_hash_ring(hash_ring, (server_t *)current->prev->data, (server_t *)current->next->data, (server_t *)current->data);
+			rebalance_hash_ring(hash_ring, (server_t *)current->prev->data,
+					(server_t *)current->next->data, (server_t *)current->data);
 			break;
 		}
 
@@ -213,11 +216,10 @@ void add_one_server(load_balancer_t *main, doubly_linked_list_t *hash_ring, int 
 void loader_add_server(load_balancer_t* main, int server_id)
 {
 	server_memory_t *new_server_memory = init_server_memory();
-	
-	for (int i = 0; i <= MAX_REPLIQUE; i++)
-		add_one_server(main, main->hash_ring, i * FIFTH_PWR + server_id,
-					   new_server_memory);
 
+	for (int i = 0; i <= MAX_REPLIQUE; i++)
+		add_one_server(main->hash_ring, i * FIFTH_PWR + server_id,
+					   new_server_memory);
 }
 
 void check_delete_one_server(doubly_linked_list_t *hash_ring)
@@ -225,7 +227,7 @@ void check_delete_one_server(doubly_linked_list_t *hash_ring)
 	if (hash_ring->size == 3) {
 		printf("The data from the server will be erased if you remove the server \n");
 		printf("Are you sure?\n");
-		
+
 		char answer[5];
 		fscanf(stdin, "%s", answer);
 
@@ -268,15 +270,14 @@ void move_objects_from_server(load_balancer_t *main, int server_id)
 	for (uint i = 0; i < size; i++) {
 		current = node;
 		node = node->next;
-		
+
 		if (((server_t *)current->data)->id % FIFTH_PWR == server_id) {
 			first_found++;
 			if (first_found == 1) {
 				tmp_server = ((server_t *)current->data)->server_memory->data;
 				free(((server_t *)current->data)->server_memory);
-
 			}
-	
+
 			if (current == main->hash_ring->head)
 				main->hash_ring->head = current->next;
 
@@ -289,7 +290,6 @@ void move_objects_from_server(load_balancer_t *main, int server_id)
 
 			main->hash_ring->size--;
 		}
-		
 	}
 
 	move_keys_from_servers(main, tmp_server);
@@ -307,7 +307,8 @@ void free_load_balancer(load_balancer_t* main)
 	dll_node_t *current = main->hash_ring->head;
 
 	for (uint i = 0; i < main->hash_ring->size; i++) {
-		if (((server_t *)current->data)->id % FIFTH_PWR == ((server_t *)current->data)->id) {
+		if (((server_t *)current->data)->id % FIFTH_PWR ==
+			((server_t *)current->data)->id) {
 			ht_free(((server_t *)current->data)->server_memory->data);
 			free(((server_t *)current->data)->server_memory);
 		}

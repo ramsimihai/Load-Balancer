@@ -1,8 +1,8 @@
-/* Copyright 2021 <> */
+// Copyright 2020 - 2021 - 311CA - Mihai Daniel Soare
 #ifndef SERVER_H_
 #define SERVER_H_
 
-#include "Hashtable.h"
+#include "./hashtable.h"
 
 #define HMAX_BUCKETS 130
 #define KEY_LENGTH 128
@@ -11,7 +11,7 @@
 typedef struct server_memory_t server_memory_t;
 
 struct server_memory_t {
-	hashtable_t *data;	
+	hashtable_t *data;
 };
 
 server_memory_t* init_server_memory();
@@ -43,4 +43,4 @@ void server_remove(server_memory_t* server, char* key);
  */
 char* server_retrieve(server_memory_t* server, char* key);
 
-#endif  /* SERVER_H_ */
+#endif  // SERVER_H_
