@@ -41,12 +41,4 @@ dll_remove_nth_node(doubly_linked_list_t* list, unsigned int n);
 void
 dll_free(doubly_linked_list_t** pp_list);
 
-// print a list that contains int datas
-void
-dll_print_int_list(doubly_linked_list_t* list);
-
-// move a node in the first position
-void
-dll_move_first(dll_node_t **head, dll_node_t *new_node);
-
 #endif  // CIRCULAR_DOUBLY_LINKED_LIST_H_
