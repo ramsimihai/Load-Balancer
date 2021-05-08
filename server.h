@@ -4,7 +4,7 @@
 
 #include "Hashtable.h"
 
-#define HMAX_BUCKETS 89
+#define HMAX_BUCKETS 130
 #define KEY_LENGTH 128
 #define VALUE_LENGTH 65536
 

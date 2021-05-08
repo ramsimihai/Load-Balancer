@@ -33,7 +33,7 @@ void print_every_server(load_balancer_t *main)
 	printf("sizeof hashring: %u\n", main->hash_ring->size);
 
 	printf("id si hash - server: ");
-	for (int i = 0; i < main->hash_ring->size; i++) {
+	for (uint i = 0; i < main->hash_ring->size; i++) {
 		printf("%d %u\n", ((server_t*)current->data)->id, ((server_t *)current->data)->hash);
 		current = current->next;
 	}
@@ -59,27 +59,18 @@ void loader_store(load_balancer_t* main, char* key, char* value, int *server_id)
 {
 	dll_node_t *current = main->hash_ring->head;
 	uint hash_object = hash_function_key(key);
-	// print_every_server(main);
-
-	// printf("hash-ul obiectului este: %u\n", hash_object);
-	// printf("hash-ul serverului este: %u\n", ((server_t *)current->data)->hash);
-	// printf("hash-ul ultimului serverului este: %u\n", ((server_t *)current->prev->data)->hash);
 
 	if (hash_object < ((server_t *)current->data)->hash) {
 		server_store(((server_t *)current->data)->server_memory, key, value);
-	//	printf("hello");
 		*server_id = get_server_id(((server_t *)current->data)->id);
 		return;
 	} else if (hash_object > ((server_t *)current->prev->data)->hash) {
-	//	printf("buna siua");
 		server_store(((server_t *)current->data)->server_memory, key, value);
 		*server_id = get_server_id(((server_t *)current->data)->id);
 		return;
 	}
 
-	for (int i = 0; i < main->hash_ring->size; i++) {
-		// printf("hash-ul obiectului este: %u\n", hash_object);
-		// printf("hash-ul serverului este: %u\n", ((server_t *)current->data)->hash);
+	for (uint i = 0; i < main->hash_ring->size; i++) {
 		if (hash_object > ((server_t *)current->data)->hash &&
 			hash_object < ((server_t *)current->next->data)->hash) {
 			server_store(((server_t *)current->next->data)->server_memory, key, value);
@@ -96,23 +87,19 @@ char* loader_retrieve(load_balancer_t* main, char* key, int* server_id)
 	dll_node_t *current = main->hash_ring->head;
 	uint hash_object = hash_function_key(key);
 
-	//print_every_server(main);
-
 	if (hash_object < ((server_t *)current->data)->hash) {
-		//printf("salutare");
 		*server_id = get_server_id(((server_t *)current->data)->id);
+
 		return server_retrieve(((server_t *)current->data)->server_memory,
 								   key);
 	} else if (hash_object > ((server_t *)current->prev->data)->hash) {
-		//printf("buna siua");
 		*server_id = get_server_id(((server_t *)current->data)->id);
+
 		return server_retrieve(((server_t *)current->data)->server_memory,
 								   key);
 	}
 
-	for (int i = 0; i < main->hash_ring->size; i++) {
-		// printf("hash-ul obiectului este: %u\n", hash_object);
-		// printf("hash-ul serverului este: %u\n", ((server_t *)current->data)->hash);
+	for (uint i = 0; i < main->hash_ring->size; i++) {
 		if (hash_object > ((server_t *)current->data)->hash &&
 			hash_object < ((server_t *)current->next->data)->hash) {
 			*server_id = get_server_id(((server_t *)current->next->data)->id);
@@ -137,13 +124,18 @@ server_t *create_server(int server_id)
 	return new_server;
 }
 
-void rebalance_hash_ring(server_t *server_src, server_t *server_dest)
+void rebalance_hash_ring(doubly_linked_list_t *hash_ring, server_t *server_prev, server_t *server_src, server_t *server_dest)
 {
-	if (!server_src || !server_dest)
+	if (!server_src || !server_dest || !server_prev)
+		return;	
+
+	uint hash_first_server = ((server_t *)hash_ring->head->next->data)->hash;
+	uint hash_last_server = ((server_t *)hash_ring->head->prev->data)->hash;
+
+	if (server_src->id % FIFTH_PWR == server_dest->id % FIFTH_PWR)
 		return;
 
-	printf("se face rebalasare\n");
-	for (int i = 0; i < server_src->server_memory->data->hmax; i++) {
+	for (uint i = 0; i < server_src->server_memory->data->hmax; i++) {
 		ll_node_t *node = server_src->server_memory->data->buckets[i]->head;
 		ll_node_t *current;
 
@@ -153,18 +145,28 @@ void rebalance_hash_ring(server_t *server_src, server_t *server_dest)
 			current = node;
 			node = node->next;
 
-			if (server_dest->hash >= hash_function_key(((info_t *)current->data)->key)) {
-				ht_put(server_dest->server_memory->data, 
+			uint hash_obj = hash_function_key(((info_t *)current->data)->key);
+			if (server_dest->hash > hash_obj && server_prev->hash < hash_obj) {
+				ht_put(server_dest->server_memory->data,
 					  ((info_t *)current->data)->key, KEY_LENGTH,
 					  ((info_t *)current->data)->value, VALUE_LENGTH);
 
 				ht_remove_entry(server_src->server_memory->data, ((info_t *)current->data)->key);
+			} else if (server_dest->hash < hash_first_server) {
+				if (hash_obj > hash_last_server || hash_obj < server_dest->hash) {
+					ht_put(server_dest->server_memory->data,
+						((info_t *)current->data)->key, KEY_LENGTH,
+						((info_t *)current->data)->value, VALUE_LENGTH);
+
+					ht_remove_entry(server_src->server_memory->data, ((info_t *)current->data)->key);
+				}
 			}
+
 		}
 	}
 }
 
-void add_one_server(doubly_linked_list_t *hash_ring, int server_id, server_memory_t *new_server_memory)
+void add_one_server(load_balancer_t *main, doubly_linked_list_t *hash_ring, int server_id, server_memory_t *new_server_memory)
 {
 	server_t new_server;
 	new_server.id = server_id;
@@ -177,17 +179,17 @@ void add_one_server(doubly_linked_list_t *hash_ring, int server_id, server_memor
 		dll_node_t *current = hash_ring->head;
 
 		for (uint i = 0; i < hash_ring->size; i++) {
-			if (new_server.hash > ((server_t *)current->data)->hash &&
-				new_server.hash < ((server_t *)current->next->data)->hash) {
+			if (new_server.hash >= ((server_t *)current->data)->hash &&
+				new_server.hash <= ((server_t *)current->next->data)->hash) {
 				dll_add_nth_node(hash_ring, i + 1, &new_server);
 
 				break;
-			} else if (new_server.hash > ((server_t *)current->data)->hash &&
+			} else if (new_server.hash >= ((server_t *)current->data)->hash &&
 					 i == hash_ring->size - 1) {
 				dll_add_nth_node(hash_ring, hash_ring->size, &new_server);
 
 				break;
-			} else if (new_server.hash < ((server_t *)current->data)->hash) {
+			} else if (new_server.hash <= ((server_t *)current->data)->hash) {
 				dll_add_nth_node(hash_ring, 0, &new_server);
 				break;
 			}
@@ -198,9 +200,9 @@ void add_one_server(doubly_linked_list_t *hash_ring, int server_id, server_memor
 
 	 dll_node_t *current = hash_ring->head;
 
-	for (int i = 0; i < hash_ring->size; i++) {
+	for (uint i = 0; i < hash_ring->size; i++) {
 		if (((server_t *)current->data)->id == server_id) {
-			rebalance_hash_ring((server_t *)current->next->data, (server_t *)current->data);
+			rebalance_hash_ring(hash_ring, (server_t *)current->prev->data, (server_t *)current->next->data, (server_t *)current->data);
 			break;
 		}
 
@@ -211,10 +213,11 @@ void add_one_server(doubly_linked_list_t *hash_ring, int server_id, server_memor
 void loader_add_server(load_balancer_t* main, int server_id)
 {
 	server_memory_t *new_server_memory = init_server_memory();
-
+	
 	for (int i = 0; i <= MAX_REPLIQUE; i++)
-		add_one_server(main->hash_ring, i * FIFTH_PWR + server_id,
+		add_one_server(main, main->hash_ring, i * FIFTH_PWR + server_id,
 					   new_server_memory);
+
 }
 
 void check_delete_one_server(doubly_linked_list_t *hash_ring)
@@ -241,10 +244,11 @@ int key_in_server(uint hash_prev, uint hash_src, uint hash_key)
 
 void move_keys_from_servers(load_balancer_t *main, hashtable_t *data)
 {
-	for (int i = 0; i < data->hmax; i++) {
+	for (uint i = 0; i < data->hmax; i++) {
 		ll_node_t *current = data->buckets[i]->head;
 
-		for (int j = 0; j < data->buckets[i]->size; i++) {
+		uint size = data->buckets[i]->size;
+		for (uint j = 0; j < size; j++) {
 			int index_server = 0;
 			loader_store(main, ((info_t *)current->data)->key,
 						((info_t *)current->data)->value, &index_server);
@@ -261,7 +265,7 @@ void move_objects_from_server(load_balancer_t *main, int server_id)
 	uint size = main->hash_ring->size;
 	int first_found = 0;
 
-	for (int i = 0; i < size; i++) {
+	for (uint i = 0; i < size; i++) {
 		current = node;
 		node = node->next;
 		
@@ -272,8 +276,7 @@ void move_objects_from_server(load_balancer_t *main, int server_id)
 				free(((server_t *)current->data)->server_memory);
 
 			}
-			// dll_remove_nth_node(main->hash_ring, i - first_found);
-			
+	
 			if (current == main->hash_ring->head)
 				main->hash_ring->head = current->next;
 
@@ -289,7 +292,6 @@ void move_objects_from_server(load_balancer_t *main, int server_id)
 		
 	}
 
-	//printf("first_found: %d\n", first_found);
 	move_keys_from_servers(main, tmp_server);
 
 	ht_free(tmp_server);
@@ -303,8 +305,8 @@ void loader_remove_server(load_balancer_t* main, int server_id)
 void free_load_balancer(load_balancer_t* main)
 {
 	dll_node_t *current = main->hash_ring->head;
-	
-	for (int i = 0; i < main->hash_ring->size; i++) {
+
+	for (uint i = 0; i < main->hash_ring->size; i++) {
 		if (((server_t *)current->data)->id % FIFTH_PWR == ((server_t *)current->data)->id) {
 			ht_free(((server_t *)current->data)->server_memory->data);
 			free(((server_t *)current->data)->server_memory);
