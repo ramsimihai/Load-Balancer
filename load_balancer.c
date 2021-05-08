@@ -308,10 +308,8 @@ void free_load_balancer(load_balancer_t* main)
 
 	for (uint i = 0; i < main->hash_ring->size; i++) {
 		if (((server_t *)current->data)->id % FIFTH_PWR ==
-			((server_t *)current->data)->id) {
-			ht_free(((server_t *)current->data)->server_memory->data);
-			free(((server_t *)current->data)->server_memory);
-		}
+			((server_t *)current->data)->id)
+			free_server_memory(((server_t *)current->data)->server_memory);
 
 		current = current->next;
 	}

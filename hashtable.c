@@ -62,15 +62,20 @@ hashtable_t *
 ht_create(unsigned int hmax, unsigned int (*hash_function)(void*),
 		int (*compare_function)(void*, void*))
 {
+	// allocs the hashtable
 	hashtable_t *ht = malloc(sizeof(*ht));
 	DIE(ht == NULL, "malloc failed");
 
+	// allocs the lists of the buckets
 	ht->buckets = malloc(hmax * sizeof(*ht->buckets));
 	DIE(ht->buckets == NULL, "malloc failed");
 
+	// creates every buckets' list
 	for (uint i = 0; i < hmax; i++)
 		ht->buckets[i] = ll_create(sizeof(info_t));
 
+	// initializes the number of maximum buckets, the hash function
+	// and the compare function
 	ht->hmax = hmax;
 
 	ht->hash_function = hash_function;
@@ -82,82 +87,43 @@ ht_create(unsigned int hmax, unsigned int (*hash_function)(void*),
 static ll_node_t *find_key(linked_list_t *bucket, void *key,
 	int (*compare_function)(void*, void*), unsigned int *pos)
 {
+	// check if the bucket is allocated
 	if (!bucket)
 		return NULL;
 
 	ll_node_t *current = bucket->head;
 
+	// iterates through the bucket and checks if the key exists in the
+	// bucket by using comparing function and return the node where is it found
 	for (uint i = 0; i < bucket->size; ++i) {
 		if (compare_function(key, ((info_t *)current->data)->key) == 0) {
 			*pos = i;
 			return current;
 		}
+
 		current = current->next;
 	}
 
 	return NULL;
 }
 
-void ht_resize(hashtable_t *ht, uint key_size, uint value_size)
-{
-	int n = 2 * ht->hmax;
-	hashtable_t *new_ht = ht_create(n, ht->hash_function, ht->compare_function);
-
-	for (uint i = 0; i < ht->hmax; i++) {
-		linked_list_t *bucket = ht->buckets[i];
-		ll_node_t *current = bucket->head;
-
-		for (uint j = 0; j < bucket->size; j++) {
-			ht_put(new_ht, ((info_t *)current->data)->key, key_size,
-				  ((info_t *)current->data)->value, value_size);
-			current = current->next;
-		}
-	}
-
-	for (uint i = 0; i < ht->hmax; i++) {
-		while (ht->buckets[i]->head) {
-			ll_node_t *removed = ll_remove_nth_node(ht->buckets[i], 0);
-			free(((info_t *)removed->data)->value);
-			free(((info_t *)removed->data)->key);
-			free(removed->data);
-			free(removed);
-		}
-
-		free(ht->buckets[i]);
-	}
-
-	free(ht->buckets);
-
-	ht->buckets = new_ht->buckets;
-	ht->hmax = n;
-
-	free(new_ht);
-}
-
-/*
- * Atentie! Desi cheia este trimisa ca un void pointer (deoarece nu se impune tipul ei), in momentul in care
- * se creeaza o noua intrare in hashtable (in cazul in care cheia nu se gaseste deja in ht), trebuie creata o copie
- * a valorii la care pointeaza key si adresa acestei copii trebuie salvata in structura info asociata intrarii din ht.
- * Pentru a sti cati octeti trebuie alocati si copiati, folositi parametrul key_size_bytes.
- *
- * Motivatie:
- * Este nevoie sa copiem valoarea la care pointeaza key deoarece dupa un apel put(ht, key_actual, value_actual),
- * valoarea la care pointeaza key_actual poate fi alterata (de ex: *key_actual++). Daca am folosi direct adresa
- * pointerului key_actual, practic s-ar modifica din afara hashtable-ului cheia unei intrari din hashtable.
- * Nu ne dorim acest lucru, fiindca exista riscul sa ajungem in situatia in care nu mai stim la ce cheie este
- * inregistrata o anumita valoare.
- */
 void
 ht_put(hashtable_t *ht, void *key, unsigned int key_size,
 	void *value, unsigned int value_size)
 {
 	info_t data;
+
+	// gets the index where to put the key
 	uint idx = ht->hash_function(key) % ht->hmax;
 	linked_list_t *bucket = ht->buckets[idx];
 	uint pos;
+
+	// find the node where it has to be put the new key
 	ll_node_t *node = find_key(bucket, key, ht->compare_function, &pos);
 
 	if (!node) {
+		// if the node doesnt exist, it gets allocated
+		// and deep copy the new (key, value) pair into it
 		data.key = malloc(key_size);
 		DIE(NULL == data.key, "malloc failed");
 		memcpy(data.key, key, key_size);
@@ -166,8 +132,10 @@ ht_put(hashtable_t *ht, void *key, unsigned int key_size,
 		DIE(NULL == data.value, "malloc failed");
 		memcpy(data.value, value, value_size);
 
+		// adds it in the bucket
 		ll_add_nth_node(bucket, 0, &data);
 	} else {
+		// deep copy the value over the old value;
 		memcpy(((info_t *)node->data)->value, value, value_size);
 	}
 
@@ -177,28 +145,30 @@ ht_put(hashtable_t *ht, void *key, unsigned int key_size,
 void *
 ht_get(hashtable_t *ht, void *key)
 {
+	// gets the index of the bucket where the key should be
 	uint idx = ht->hash_function(key) % ht->hmax;
 	linked_list_t *bucket = ht->buckets[idx];
 	uint pos;
+
+	// gets the node of the given key
 	ll_node_t *node = find_key(bucket, key, ht->compare_function, &pos);
 
+	// returns it if the key is stored in the hashtable
 	if (node)
 		return ((info_t *)node->data)->value;
 
 	return NULL;
 }
 
-/*
- * Functie care intoarce:
- * 1, daca pentru cheia key a fost asociata anterior o valoare in hashtable folosind functia put
- * 0, altfel.
- */
 int
 ht_has_key(hashtable_t *ht, void *key)
 {
+	// gets the index of the bucket where the key should be
 	uint idx = ht->hash_function(key) % ht->hmax;
 	linked_list_t *bucket = ht->buckets[idx];
 	uint pos;
+
+	// gets the node of the given key
 	ll_node_t *node = find_key(bucket, key, ht->compare_function, &pos);
 
 	if (node)
@@ -207,53 +177,62 @@ ht_has_key(hashtable_t *ht, void *key)
 	return 0;
 }
 
-/*
- * Procedura care elimina din hashtable intrarea asociata cheii key.
- * Atentie! Trebuie avuta grija la eliberarea intregii memorii folosite pentru o intrare din hashtable (adica memoria
- * pentru copia lui key --vezi observatia de la procedura put--, pentru structura info si pentru structura Node din
- * lista inlantuita).
- */
 void
 ht_remove_entry(hashtable_t *ht, void *key)
 {
+	// checks if the hashtable is allocated
 	if (!ht)
 		return;
 
+	// gets the index of the bucket where the key should be
 	uint idx = ht->hash_function(key) % ht->hmax;
 	linked_list_t *bucket = ht->buckets[idx];
 	uint pos;
+
+	// gets the node of the given key
 	ll_node_t *node = find_key(bucket, key, ht->compare_function, &pos);
 
+	// if the key associated exists in hashtable removes the node
 	if (node) {
 		ll_node_t *removed = ll_remove_nth_node(bucket, pos);
+
+		// frees the (key, value) pair and the node
 		free(((info_t *)removed->data)->value);
 		free(((info_t *)removed->data)->key);
+
 		free(removed->data);
 		free(removed);
+
+		// decrements the entries size of the hashtable
 		ht->size--;
 	}
 }
 
-/*
- * Procedura care elibereaza memoria folosita de toate intrarile din hashtable, dupa care elibereaza si memoria folosita
- * pentru a stoca structura hashtable.
- */
 void
 ht_free(hashtable_t *ht)
 {
 	ll_node_t *current;
+
+	// iterates through every list of buckets
 	for (uint i = 0; i < ht->hmax; i++) {
+		// checks if the bucket of the hashtable is allocated
 		if (ht->buckets[i]->head != NULL) {
 			current = ht->buckets[i]->head;
+
+			// iterates through a bucket and free the (key, value) pairs
 			while (current != NULL) {
 				free(((info_t *)current->data)->value);
 				free(((info_t *)current->data)->key);
+
 				current = current->next;
 			}
 		}
+
+		// frees every list of buckets
 		ll_free(&ht->buckets[i]);
 	}
 
+	// frees the array of buckets and the hashtable
 	free(ht->buckets);
 	free(ht);
 }

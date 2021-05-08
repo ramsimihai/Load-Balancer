@@ -15,6 +15,7 @@ typedef unsigned int uint;
 struct server_t {
 	int id;
 	uint hash;
+	// a server memory struct which cotains a hashtable of data
 	server_memory_t *server_memory;
 };
 
