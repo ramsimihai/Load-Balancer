@@ -8,7 +8,6 @@
 
 typedef unsigned int uint;
 
-#define MAX_BUCKET_SIZE 64
 #define RESIZE_CONST 0.75
 
 /*
@@ -100,6 +99,9 @@ ht_create(unsigned int hmax, unsigned int (*hash_function)(void*),
 static ll_node_t *find_key(linked_list_t *bucket, void *key,
 	int (*compare_function)(void*, void*), unsigned int *pos)
 {
+	if (!bucket)
+		return NULL;
+
 	ll_node_t *current = bucket->head;
 
 	for (uint i = 0; i < bucket->size; ++i) {
@@ -233,6 +235,9 @@ ht_has_key(hashtable_t *ht, void *key)
 void
 ht_remove_entry(hashtable_t *ht, void *key)
 {
+	if (!ht)
+		return;
+	
 	uint idx = ht->hash_function(key) % ht->hmax;
 	linked_list_t *bucket = ht->buckets[idx];
 	uint pos;

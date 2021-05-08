@@ -10,7 +10,7 @@ CDLL=circular_doubly_linked_list
 
 build: tema2
 
-tema2: main.o $(LOAD).o $(SERVER).o $(HTABLE).o $(LIST).o
+tema2: main.o $(LOAD).o $(SERVER).o $(HTABLE).o $(LIST).o $(CDLL).o
 	$(CC) $^ -o $@
 
 main.o: main.c
