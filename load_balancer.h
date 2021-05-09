@@ -3,6 +3,7 @@
 #define LOAD_BALANCER_H_
 
 #include "./server.h"
+#include "./utils_load_balancer.h"
 #include "./circular_doubly_linked_list.h"
 
 #define MAX_REPLIQUE 2
@@ -15,11 +16,12 @@ typedef unsigned int uint;
 struct server_t {
 	int id;
 	uint hash;
-	// a server memory struct which cotains a hashtable of data
+	// a server memory struct which contains a hashtable of data
 	server_memory_t *server_memory;
 };
 
 struct load_balancer_t {
+	// circular doubly linked list of servers
 	doubly_linked_list_t *hash_ring;
 };
 

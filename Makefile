@@ -6,12 +6,13 @@ SERVER=server
 HTABLE=hashtable
 LIST=linked_list
 CDLL=circular_doubly_linked_list
+UTL=utils_load_balancer
 
 .PHONY: build clean
 
 build: tema2
 
-tema2: main.o $(LOAD).o $(SERVER).o $(HTABLE).o $(LIST).o $(CDLL).o
+tema2: main.o $(LOAD).o $(SERVER).o $(HTABLE).o $(LIST).o $(CDLL).o $(UTL).o
 	$(CC) $^ -o $@
 
 main.o: main.c
@@ -30,6 +31,9 @@ $(SERVER).o: $(SERVER).c $(SERVER).h
 	$(CC) $(CFLAGS) $^ -c
 
 $(LOAD).o: $(LOAD).c $(LOAD).h
+	$(CC) $(CFLAGS) $^ -c
+
+$(UTL).o: $(UTL).c $(UTL).h
 	$(CC) $(CFLAGS) $^ -c
 
 pack:
