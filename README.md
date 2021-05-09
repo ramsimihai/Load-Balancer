@@ -1,6 +1,7 @@
 // Copyright 2020 - 2021 311CA Mihai Daniel Soare
 
 WARNING: i hate to use uppercase letters
+
 PS: this README is a presentation of the program and its going to be added
 on github and in CV
 
