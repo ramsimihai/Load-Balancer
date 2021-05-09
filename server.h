@@ -4,7 +4,7 @@
 
 #include "./hashtable.h"
 
-#define HMAX_BUCKETS 130
+#define HMAX_BUCKETS 93
 #define KEY_LENGTH 128
 #define VALUE_LENGTH 65536
 
@@ -16,6 +16,7 @@ struct server_memory_t {
 
 // init_server_memory() - Allocs a new server_memory_t object.
 // Contains a hashtable where the data will be stored.
+// A single one is gonna be used a server and two replicas of its own.
 server_memory_t* init_server_memory();
 
 // free_server_memory - Frees a server_memory_t object.
